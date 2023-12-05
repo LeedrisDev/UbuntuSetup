@@ -8,3 +8,6 @@ sudo apt-get install -y curl
 
 # Install git
 sudo apt-get install -y git
+
+# Install Unzip
+sudo apt-get install -y unzip
