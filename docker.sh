@@ -26,5 +26,13 @@ sudo apt-get install -y docker-ce
 # Execute docker without sudo
 sudo usermod -aG docker $USER
 
+# Add aliases to .zshrc
+echo "
+# Docker Compose Aliases
+
+alias dc='docker compose'
+alias dcu='docker compose up'
+alias dcd='docker compose down'" >> ~/.zshrc
+
 # Apply new group membership
 su - $USER
