@@ -1,0 +1,10 @@
+---
+- name: Install ripgrep package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install ripgrep package
+      apt:
+        name: ripgrep
+        state: present

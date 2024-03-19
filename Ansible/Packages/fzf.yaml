@@ -1,0 +1,10 @@
+---
+- name: Install fzf package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install fzf package
+      apt:
+        name: fzf
+        state: present

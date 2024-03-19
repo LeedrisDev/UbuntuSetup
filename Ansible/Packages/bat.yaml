@@ -1,0 +1,10 @@
+---
+- name: Install bat package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install bat package
+      apt:
+        name: bat
+        state: present

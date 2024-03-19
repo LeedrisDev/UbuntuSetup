@@ -1,0 +1,10 @@
+---
+- name: Install neofetch package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install neofetch package
+      apt:
+        name: neofetch
+        state: present

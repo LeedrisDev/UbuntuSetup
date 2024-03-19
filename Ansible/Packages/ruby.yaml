@@ -1,0 +1,10 @@
+---
+- name: Install ruby package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install ruby package
+      apt:
+        name: ruby-full
+        state: present

@@ -1,0 +1,10 @@
+---
+- name: Install build-essential package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install build-essential package
+      apt:
+        name: build-essential
+        state: present

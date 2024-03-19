@@ -1,0 +1,10 @@
+---
+- name: Install FUSE package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install FUSE package
+      apt:
+        name: fuse
+        state: present

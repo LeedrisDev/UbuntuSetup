@@ -1,0 +1,12 @@
+---
+- name: Install colorls ruby package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install ruby-full package
+      apt:
+        name: ruby-full
+        state: present
+    - name: Install colorls package
+      shell: gem list --local | grep -q '^colorls ' || gem install colorls

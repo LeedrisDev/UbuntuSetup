@@ -1,0 +1,10 @@
+---
+- name: Install unzip package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install unzip package
+      apt:
+        name: unzip
+        state: present

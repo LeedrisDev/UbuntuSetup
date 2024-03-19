@@ -1,0 +1,10 @@
+---
+- name: Install Oh My Zsh
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Download and run Oh My Zsh install script
+      script:
+        inline: |
+          curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh

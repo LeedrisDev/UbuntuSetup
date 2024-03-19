@@ -1,0 +1,43 @@
+---
+- name: Install Docker on Ubuntu
+  hosts: localhost
+  become: yes
+
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Check if the GPG key file exists
+      stat:
+        path: /usr/share/keyrings/docker-archive-keyring.gpg
+      register: key_file_status
+
+    - name: Add Docker’s official GPG key
+      args:
+        warn: false
+      shell: wget -qO- https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      when: not key_file_status.stat.exists
+
+    - name: Add Docker repository to APT sources
+      shell: echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    - name: Update apt package cache (again)
+      apt:
+        update_cache: yes
+
+    - name: Install Docker and its dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - software-properties-common
+        - docker-ce
+
+    - name: Add docker group to user's supplementary groups
+      user:
+        name: "{{ ansible_env.SUDO_USER }}"
+        groups: docker
+        append: yes

@@ -1,0 +1,16 @@
+---
+- name: Install Zsh and set as default shell
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install Zsh package
+      apt:
+        name: zsh
+        state: present
+        update_cache: yes
+
+    - name: Set Zsh as default shell
+      shell: chsh -s $(which zsh) {{ ansible_user }}
+      become: yes
+      when: ansible_user != 'root'

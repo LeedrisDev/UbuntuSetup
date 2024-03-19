@@ -1,0 +1,10 @@
+---
+- name: Install fzf-tab package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install fzf-tab package
+      apt:
+        name: fzf-tab
+        state: present

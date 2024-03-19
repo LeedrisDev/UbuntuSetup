@@ -1,0 +1,15 @@
+---
+- name: Install vim package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install vim package
+      apt:
+        name: vim
+        state: present
+
+    - name: Setup vimrc
+      template:
+        src: vimrc.j2
+        dest: ~/.vimrc

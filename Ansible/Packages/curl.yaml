@@ -1,0 +1,10 @@
+---
+- name: Install curl package
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install curl package
+      apt:
+        name: curl
+        state: present
