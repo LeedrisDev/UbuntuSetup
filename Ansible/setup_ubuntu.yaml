@@ -1,0 +1,250 @@
+---
+- name: Setup Ubuntu
+  hosts: localhost
+  gather_facts: yes
+  become: no
+
+  tasks:
+    - name: Update apt package cache
+      become: yes
+      apt:
+        update_cache: yes
+
+    - name: Upgrade all packages
+      become: yes
+      apt:
+        upgrade: dist
+
+    - name: Check if the docker GPG key file exists
+      stat:
+        path: /usr/share/keyrings/docker-archive-keyring.gpg
+      register: key_file_status
+
+    - name: Add Docker’s official GPG key
+      become: yes
+      args:
+        warn: false
+      shell: wget -qO- https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      when: not key_file_status.stat.exists
+
+    - name: Add Docker repository to APT sources
+      become: yes
+      shell: echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    - name: Update apt package cache (again)
+      become: yes
+      apt:
+        update_cache: yes
+
+    - name: Install packages
+      become: yes
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - apt-transport-https
+        - bat
+        - build-essential
+        - ca-certificates
+        - curl
+        - docker-ce
+        - fuse
+        - fzf
+        - git
+        - neofetch
+        - python3-pip
+        - ripgrep
+        - ruby-full
+        - software-properties-common
+        - unzip
+        - vim
+        - zsh
+
+    - name: Add docker group to user's supplementary groups
+      user:
+        name: "{{ ansible_env.USER }}"
+        groups: docker
+        append: yes
+
+    - name: Set Zsh as default shell
+      become: yes
+      shell: chsh -s $(which zsh)
+
+    - name: Check if Oh My Zsh is installed
+      stat:
+        path: "{{ ansible_user_dir }}/.oh-my-zsh"
+      register: ohmyzsh_status
+
+    - name: Install Oh My Zsh
+      shell: sh -c "$(wget -O- https://install.ohmyz.sh/)"
+      when: ohmyzsh_status.stat.exists == false
+
+    - name: Enable zshconfig alias
+      replace:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        regexp: '^# alias zshconfig="mate ~/.zshrc"$'
+        replace: 'alias zshconfig="vim ~/.zshrc"'
+
+    - name: Setup vimrc
+      template:
+        src: Packages/vimrc.j2
+        dest: ~/.vimrc
+
+    # Install Zsh plugins
+
+    - name: Check if zsh-autosuggestions is installed
+      stat:
+        path: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+      register: directory_status
+
+    - name: Install zsh-autosuggestions
+      git:
+        repo: https://github.com/zsh-users/zsh-autosuggestions
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+      when: directory_status.stat.exists == false
+
+    - name: Check if fzf-tab is installed
+      stat:
+        path: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/fzf-tab"
+      register: directory_status
+
+    - name: Install fzf-tab
+      git:
+        repo: https://github.com/Aloxaf/fzf-tab
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/fzf-tab"
+        update: yes
+      when: directory_status.stat.exists == false
+
+    - name: Clone zsh-syntax-highlighting repository
+      git:
+        repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+
+    # Setup / enable Zsh plugins
+
+    - name: Formatting plugins part in .zshrc file
+      replace:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        regexp: '^plugins=\(git\)$'
+        replace: |
+          plugins=(
+              aliases
+              cp
+              docker
+              docker-compose
+              fzf
+              fzf-tab
+              git
+              kubectl
+              man
+              sudo
+              zsh-autosuggestions
+              zsh-syntax-highlighting
+          )
+
+    - name: Plugins settings
+      lineinfile:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        insertafter: EOF
+        regexp: '^# Plugins settings$'
+        line: |
+          
+          # Plugins settings
+          eval "$(fzf --zsh)"
+          
+          # disable sort when completing `git checkout`
+          zstyle ':completion:*:git-checkout:*' sort false
+          # set descriptions format to enable group support
+          # NOTE: don't use escape sequences here, fzf-tab will ignore them
+          zstyle ':completion:*:descriptions' format '[%d]'
+          # set list-colors to enable filename colorizing
+          zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+          # force zsh not to show completion menu, which allows fzf-tab to capture the unambiguous prefix
+          zstyle ':completion:*' menu no
+          # preview directory's content with eza when completing cd
+          zstyle ':fzf-tab:complete:cd:*' fzf --preview 'if [ -f {} ]; then bat --color=always --style=numbers --line-range=:100 {}; elif [ -d {} ]; then colorls --sd --color=always "$realpath" {}; fi'
+          # switch group using `<` and `>`
+          zstyle ':fzf-tab:*' switch-group '<' '>'
+          
+          neofetch
+        state: present
+
+    # Powerlevel10k setup
+
+    - name: Download MesloLGS NF Regular.ttf
+      get_url:
+        url: "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
+        dest: /tmp/MesloLGS_NF_Regular.ttf
+
+    - name: Download MesloLGS NF Bold.ttf
+      get_url:
+        url: "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf"
+        dest: /tmp/MesloLGS_NF_Bold.ttf
+
+    - name: Download MesloLGS NF Italic.ttf
+      get_url:
+        url: "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf"
+        dest: /tmp/MesloLGS_NF_Italic.ttf
+
+    - name: Download MesloLGS NF Bold Italic.ttf
+      get_url:
+        url: "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf"
+        dest: /tmp/MesloLGS_NF_Bold_Italic.ttf
+
+    - name: Check if MesloLGS folder exists
+      stat:
+        path: "/usr/share/fonts/truetype/MesloLGS"
+      register: meslo_folder
+
+    - name: Create MesloLGS folder if it doesn't exist
+      file:
+        path: "/usr/share/fonts/truetype/MesloLGS"
+        state: directory
+        mode: 0755
+      when: not meslo_folder.stat.exists
+
+    - name: Install MesloLGS NF fonts
+      copy:
+        src: "/tmp/{{ item }}"
+        dest: "/usr/share/fonts/truetype/MesloLGS/{{ item }}"
+      with_items:
+        - MesloLGS_NF_Regular.ttf
+        - MesloLGS_NF_Bold.ttf
+        - MesloLGS_NF_Italic.ttf
+        - MesloLGS_NF_Bold_Italic.ttf
+
+    - name: Clone Powerlevel10k repository
+      git:
+        repo: https://github.com/romkatv/powerlevel10k.git
+        dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/powerlevel10k"
+        depth: 1
+
+    - name: Set ZSH_THEME to powerlevel10k
+      lineinfile:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        regexp: '^ZSH_THEME="robbyrussell"$'
+        line: 'ZSH_THEME="powerlevel10k/powerlevel10k"'
+
+    - name: Install colorls
+      become: yes
+      command: gem install colorls
+
+    - name: Configure aliases
+      lineinfile:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        insertafter: EOF
+        regexp: '^# Aliases$'
+        line: |
+          
+          # Aliases
+          # colorls
+          alias ls='colorls --sd'
+          alias ll='colorls --sd'
+          alias la='colorls --sd -a'
+          alias l='colorls --sd -l'
+          alias lla='colorls --sd -la'
+          alias lal='colorls --sd -la'
+          alias lalh='colorls --sd -la --long'
+          alias lalr='colorls --sd -la --report'
+          # bat
+          alias cat='bat'
